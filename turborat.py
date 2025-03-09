@@ -34,9 +34,8 @@ def threader(queue):
         scan_port(worker[0], worker[1])
         queue.task_done()
 
-def port_scan(target, start_port, end_port, thread_count):
-    """Scan a range of ports on a target IP address"""
-    print(f"Scanning {target} from port {start_port} to {end_port} with {thread_count} threads")
+def port_scan(targets, start_port, end_port, thread_count):
+    """Scan a range of ports on a list of target IP addresses"""
     queue = Queue()
     
     for _ in range(thread_count):
@@ -44,19 +43,23 @@ def port_scan(target, start_port, end_port, thread_count):
         thread.daemon = True
         thread.start()
     
-    for port in range(start_port, end_port + 1):
-        queue.put((target, port))
+    for target in targets:
+        print(f"Scanning {target} from port {start_port} to {end_port} with {thread_count} threads")
+        for port in range(start_port, end_port + 1):
+            queue.put((target, port))
     
     queue.join()
+    print("Scanning complete. Results are logged in 'scan_results.log'.")
 
 def main():
     # Kullanıcının inputlarını al
-    target = input("Enter the target IP address: ")
+    target_input = input("Enter the target IP addresses (comma-separated): ")
+    targets = [target.strip() for target in target_input.split(',')]
     start_port = int(input("Enter the start port number: "))
     end_port = int(input("Enter the end port number: "))
     thread_count = int(input("Enter the number of threads (default: 10): ") or 10)
 
-    port_scan(target, start_port, end_port, thread_count)
+    port_scan(targets, start_port, end_port, thread_count)
 
 if __name__ == "__main__":
     main()
