@@ -1,6 +1,5 @@
 import socket
 import threading
-import argparse
 import logging
 from queue import Queue
 
@@ -51,14 +50,13 @@ def port_scan(target, start_port, end_port, thread_count):
     queue.join()
 
 def main():
-    parser = argparse.ArgumentParser(description="Port Scanner")
-    parser.add_argument("target", help="Target IP address")
-    parser.add_argument("start_port", type=int, help="Start port number")
-    parser.add_argument("end_port", type=int, help="End port number")
-    parser.add_argument("--threads", type=int, default=10, help="Number of threads (default: 10)")
-    args = parser.parse_args()
+    # Kullanıcının inputlarını al
+    target = input("Enter the target IP address: ")
+    start_port = int(input("Enter the start port number: "))
+    end_port = int(input("Enter the end port number: "))
+    thread_count = int(input("Enter the number of threads (default: 10): ") or 10)
 
-    port_scan(args.target, args.start_port, args.end_port, args.threads)
+    port_scan(target, start_port, end_port, thread_count)
 
 if __name__ == "__main__":
     main()
