@@ -1,28 +1,64 @@
 import socket
 import threading
+import argparse
+import logging
+from queue import Queue
 
-def port_scan(target, start_port, end_port):
-    print(f"Scanning {target} from port {start_port} to {end_port}")
-    for port in range(start_port, end_port + 1):
-        t = threading.Thread(target=scan_port, args=(target, port))
-        t.start()
+# Logging configuration
+logging.basicConfig(filename='scan_results.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+
+# Thread lock for printing to avoid overlapping output
+print_lock = threading.Lock()
 
 def scan_port(target, port):
+    """Scan a single port"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(1)
     try:
         result = sock.connect_ex((target, port))
-        if result == 0:
-            print(f"Port {port} on {target}: Open")
+        with print_lock:
+            if result == 0:
+                print(f"Port {port} on {target}: Open")
+                logging.info(f"Port {port} on {target}: Open")
+            else:
+                logging.info(f"Port {port} on {target}: Closed")
     except socket.error as e:
-        print(f"Error on port {port}: {e}")
+        with print_lock:
+            print(f"Error on port {port}: {e}")
+            logging.error(f"Error on port {port}: {e}")
     finally:
         sock.close()
 
-if __name__ == "__main__":
-    targets = input("Enter the target IP addresses (comma-separated): ").split(',')
-    start_port = int(input("Enter the start port: "))
-    end_port = int(input("Enter the end port: "))
+def threader(queue):
+    while True:
+        worker = queue.get()
+        scan_port(worker[0], worker[1])
+        queue.task_done()
 
-    for target in targets:
-        port_scan(target.strip(), start_port, end_port)
+def port_scan(target, start_port, end_port, thread_count):
+    """Scan a range of ports on a target IP address"""
+    print(f"Scanning {target} from port {start_port} to {end_port} with {thread_count} threads")
+    queue = Queue()
+    
+    for _ in range(thread_count):
+        thread = threading.Thread(target=threader, args=(queue,))
+        thread.daemon = True
+        thread.start()
+    
+    for port in range(start_port, end_port + 1):
+        queue.put((target, port))
+    
+    queue.join()
+
+def main():
+    parser = argparse.ArgumentParser(description="Port Scanner")
+    parser.add_argument("target", help="Target IP address")
+    parser.add_argument("start_port", type=int, help="Start port number")
+    parser.add_argument("end_port", type=int, help="End port number")
+    parser.add_argument("--threads", type=int, default=10, help="Number of threads (default: 10)")
+    args = parser.parse_args()
+
+    port_scan(args.target, args.start_port, args.end_port, args.threads)
+
+if __name__ == "__main__":
+    main()
