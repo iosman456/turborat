@@ -2,6 +2,7 @@ import socket
 import threading
 import logging
 from queue import Queue
+from termcolor import colored
 
 # Logging configuration
 logging.basicConfig(filename='scan_results.log', level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -17,13 +18,13 @@ def scan_port(target, port):
         result = sock.connect_ex((target, port))
         with print_lock:
             if result == 0:
-                print(f"Port {port} on {target}: Open")
+                print(colored(f"Port {port} on {target}: Open", "green"))
                 logging.info(f"Port {port} on {target}: Open")
             else:
                 logging.info(f"Port {port} on {target}: Closed")
     except socket.error as e:
         with print_lock:
-            print(f"Error on port {port}: {e}")
+            print(colored(f"Error on port {port}: {e}", "red"))
             logging.error(f"Error on port {port}: {e}")
     finally:
         sock.close()
@@ -44,14 +45,15 @@ def port_scan(targets, start_port, end_port, thread_count):
         thread.start()
     
     for target in targets:
-        print(f"Scanning {target} from port {start_port} to {end_port} with {thread_count} threads")
+        print(colored(f"Scanning {target} from port {start_port} to {end_port} with {thread_count} threads", "blue"))
         for port in range(start_port, end_port + 1):
             queue.put((target, port))
     
     queue.join()
-    print("Scanning complete. Results are logged in 'scan_results.log'.")
+    print(colored("Scanning complete. Results are logged in 'scan_results.log'.", "yellow"))
 
 def main():
+    print(colored("Welcome to TurboRAT Port Scanner", "cyan"))
     # Kullanıcının inputlarını al
     target_input = input("Enter the target IP addresses (comma-separated): ")
     targets = [target.strip() for target in target_input.split(',')]
